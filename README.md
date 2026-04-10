@@ -38,7 +38,7 @@ No installation required. This is a client-side web application.
 
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/automata-visualizer.git
+    git clone https://github.com/Sainath-10/regex-to-automata-visualizer.git
     ```
 2.  Open `index.html` in any modern web browser.
 
