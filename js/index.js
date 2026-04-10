@@ -453,10 +453,41 @@ function openSteps(type) {
 // ── STRING VISUALIZER LOGIC ─────────────────────────────────────────────────
 let vIdx = -1, vCur = null, vDead = false, vTimer = null, vActiveReg = '';
 
+function renderLive() {
+  const vm = document.getElementById('vMachine').value;
+  const title = document.getElementById('liveTitle');
+  if (!gNfaFrag) return;
+  
+  if (vm === 'nfa') {
+    title.innerHTML = '⚡ Thompson\'s NFA Simulation';
+    const { nodes, links } = nfaData(gNfaFrag.start, gSmap);
+    renderGraph('liveCanvas', nodes, links, { color: '#8b5cf6' });
+  } else if (vm === 'dfa') {
+    title.innerHTML = '⚡ DFA Subset Simulation';
+    const { nodes, links } = dfaData(gDFA.states, gDFA.startKey);
+    renderGraph('liveCanvas', nodes, links, { color: '#0891b2', subsets: true });
+  } else {
+    title.innerHTML = '⚡ Minimized DFA Simulation';
+    const { nodes, links } = minData(gMin.states, gMin.startGroup);
+    renderGraph('liveCanvas', nodes, links, { color: '#059669', subsets: true });
+  }
+}
+
 function resetVisual() {
   stopPlay();
   vIdx = -1; vDead = false; vActiveReg = '';
-  if (gMin) vCur = gMin.startGroup;
+  const m = document.getElementById('vMachine').value;
+  if (!gNfaFrag) return;
+  
+  renderLive();
+  
+  if (m === 'nfa') {
+    vCur = Array.from(epsClosure([gNfaFrag.start.id], gSmap));
+  } else if (m === 'dfa') {
+    vCur = gDFA.states.get(gDFA.startKey).id;
+  } else {
+    vCur = gMin.startGroup;
+  }
   updateVisualUI();
 }
 
@@ -464,6 +495,8 @@ function updateVisualUI() {
   const str = document.getElementById('testIn').value;
   const prog = document.getElementById('testProg');
   const tape = document.getElementById('progTape');
+  const vm = document.getElementById('vMachine').value;
+  const cid = 'liveCanvas'; // Always target the live canvas
 
   if (vIdx === -1 && !vActiveReg) {
     prog.classList.remove('show');
@@ -482,37 +515,50 @@ function updateVisualUI() {
   // Update Graph Highlights
   clearHighlights();
   if (vCur !== null) {
-    const node = d3.select(`#node-minCanvas-${vCur}`);
-    if (!node.empty()) {
-      node.classed('node-active', true);
-      // If we finished the string, check acceptance
-      if (vIdx === str.length - 1 || (str === '' && vIdx === -1)) {
-        const ms = gMin.states.get(vCur);
-        if (ms && ms.accept) node.classed('node-final-acc', true);
-        else if (vDead) node.classed('node-final-rej', true);
+    const curIds = Array.isArray(vCur) ? vCur : [vCur];
+    curIds.forEach(id => {
+      const node = d3.select(`#node-${cid}-${id}`);
+      if (!node.empty()) {
+        node.classed('node-active', true);
+        // If we finished the string, check acceptance
+        if (vIdx === str.length - 1 || (str === '' && vIdx === -1)) {
+          let isAcc = false;
+          if (vm === 'nfa') {
+            isAcc = curIds.some(nid => gSmap.get(nid)?.accept);
+          } else if (vm === 'dfa') {
+            isAcc = Array.from(gDFA.states.values()).find(s => s.id === id)?.accept;
+          } else {
+            isAcc = gMin.states.get(id)?.accept;
+          }
+          
+          if (isAcc) node.classed('node-final-acc', true);
+          else if (vDead) node.classed('node-final-rej', true);
+        }
       }
-    }
-  }
-  if (vDead) {
-    // If dead, we don't have a node, but maybe we can show an error or just the rejected state
+    });
   }
 }
 
 function clearHighlights() {
-  d3.selectAll('#minCanvas .node-active, #minCanvas .node-final-acc, #minCanvas .node-final-rej').classed('node-active node-final-acc node-final-rej', false);
-  d3.selectAll('#minCanvas .link-active').classed('link-active', false);
+  d3.selectAll('#liveCanvas .node-active, #liveCanvas .node-final-acc, #liveCanvas .node-final-rej').classed('node-active node-final-acc node-final-rej', false);
+  d3.selectAll('#liveCanvas .link-active').classed('link-active', false);
 }
 
 function stepVisual() {
-  if (!gMin) { alert('Run the pipeline first!'); return; }
+  const vm = document.getElementById('vMachine').value;
   const str = document.getElementById('testIn').value;
+  const cid = 'liveCanvas';
+  
+  if (!gNfaFrag) { alert('Run the pipeline first!'); stopPlay(); return; }
 
   // Starting a new test
   if (vIdx === -1 && vActiveReg === '') {
-    vIdx = -1; vCur = gMin.startGroup; vDead = false; vActiveReg = str;
-    // Highlight start state immediately
+    vIdx = -1; vDead = false; vActiveReg = str;
+    if (vm === 'nfa') vCur = Array.from(epsClosure([gNfaFrag.start.id], gSmap));
+    else if (vm === 'dfa') vCur = gDFA.states.get(gDFA.startKey).id;
+    else vCur = gMin.startGroup;
+    
     updateVisualUI();
-    // If empty string, we are done
     if (str === '') return;
   }
 
@@ -523,28 +569,50 @@ function stepVisual() {
 
   vIdx++;
   const ch = str[vIdx];
-  const s = gMin.states.get(vCur);
-
-  if (!s || s.trans[ch] === undefined) {
-    vDead = true;
-    updateVisualUI();
-    stopPlay();
-    return;
-  }
-
   const prev = vCur;
-  vCur = s.trans[ch];
 
-  // Highlight the link
-  const linkId = `#link-minCanvas-${prev}-${vCur}-${ch}`;
-  d3.select(linkId).classed('link-active', true);
+  if (vm === 'nfa') {
+    const nextSet = epsClosure(moveSet(new Set(vCur), ch, gSmap), gSmap);
+    if (!nextSet.size) {
+      vDead = true;
+      updateVisualUI();
+      stopPlay();
+      return;
+    }
+    // Highlight links
+    vCur.forEach(pid => {
+      const s = gSmap.get(pid);
+      if (s && s.trans[ch]) {
+        s.trans[ch].forEach(t => {
+          const lid = `#link-${cid}-${pid}-${t.id}-${ch}`;
+          d3.select(lid).classed('link-active', true);
+        });
+      }
+    });
+    vCur = Array.from(nextSet);
+  } else {
+    const machine = vm === 'dfa' ? gDFA : gMin;
+    let st;
+    if (vm === 'dfa') st = Array.from(gDFA.states.values()).find(s => s.id === vCur);
+    else st = gMin.states.get(vCur);
+
+    if (!st || st.trans[ch] === undefined) {
+      vDead = true;
+      updateVisualUI();
+      stopPlay();
+      return;
+    }
+    
+    const next = st.trans[ch];
+    d3.select(`#link-${cid}-${vCur}-${next}-${ch}`).classed('link-active', true);
+    vCur = next;
+  }
 
   updateVisualUI();
 
   if (vIdx === str.length - 1) {
     stopPlay();
-    // Final check for acceptance
-    testStr(); // Show the text verdict too
+    testStr(); 
   }
 }
 

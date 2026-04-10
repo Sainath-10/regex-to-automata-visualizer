@@ -851,7 +851,7 @@ header {
   }
 }
 
-.node-active circle:first-child {
+#liveCanvas .node-active circle:first-child {
   stroke: var(--a1) !important;
   stroke-width: 3px !important;
   animation: pulse-glow 1.5s infinite ease-in-out;
@@ -862,13 +862,13 @@ header {
   font-weight: 800 !important;
 }
 
-.node-final-acc circle:first-child {
+#liveCanvas .node-final-acc circle:first-child {
   stroke: var(--a3) !important;
   stroke-width: 4px !important;
   animation: pulse-acc 1s infinite ease-in-out;
 }
 
-.node-final-rej circle:first-child {
+#liveCanvas .node-final-rej circle:first-child {
   stroke: var(--a5) !important;
   stroke-width: 4px !important;
   animation: pulse-rej 1s infinite ease-in-out;
@@ -941,6 +941,29 @@ header {
   background: rgba(245, 158, 11, 0.15);
   padding: 0 2px;
   border-radius: 2px;
+}
+
+.t-select {
+  padding: 9px 12px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  color: var(--t2);
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  outline: none;
+  cursor: pointer;
+  transition: all .2s;
+}
+
+.t-select:hover {
+  border-color: var(--a4);
+  color: var(--t1);
+}
+
+.t-select:focus {
+  border-color: var(--a4);
+  box-shadow: 0 0 0 2.5px rgba(245, 158, 11, 0.1);
 }
 
 

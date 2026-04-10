@@ -216,6 +216,11 @@
       <div class="trow">
         <input class="tin" id="testIn" type="text" placeholder="Type a string to test, e.g. aabb" spellcheck="false" />
         <button class="btn-test" onclick="testStr()">Test Instant</button>
+        <select class="t-select" id="vMachine" onchange="resetVisual()">
+          <option value="min" selected>Min-DFA</option>
+          <option value="dfa">DFA</option>
+          <option value="nfa">NFA</option>
+        </select>
       </div>
 
       <div class="t-btn-group">
@@ -235,6 +240,32 @@
       </div>
 
       <div class="trace-area" id="traceArea" style="display:none"></div>
+    </div>
+
+    <!-- Active Visualization Panel (Restricted to Simulation) -->
+    <div class="gpanel" id="panLive">
+      <div class="ghead">
+        <div>
+          <div class="gtitle" style="color:var(--a4)" id="liveTitle">⚡ Active Machine Simulation</div>
+          <div class="ghead-sub">Live traversal happens here</div>
+        </div>
+        <div class="ghead-right">
+          <div class="gbadge" id="liveBadge"
+            style="background:rgba(245,158,11,0.1);color:var(--a4);border:1px solid rgba(245,158,11,0.2)">SIMULATION
+          </div>
+          <div class="gzoom">
+            <button class="zb" onclick="zI('liveCanvas')" title="Zoom in">+</button>
+            <button class="zb" onclick="zO('liveCanvas')" title="Zoom out">−</button>
+            <button class="zb zb-reset" onclick="zR('liveCanvas')">Reset</button>
+          </div>
+        </div>
+      </div>
+      <div class="gcanvas" id="liveCanvas">
+        <div class="empty-st">
+          <div class="empty-ic">◈</div>
+          <div>Choose a machine and start testing</div>
+        </div>
+      </div>
     </div>
 
     <!-- Transition Tables -->
