@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Step-by-Step: NFA → DFA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/steps-dfa.css">
+</head>
+<body>
+<div class="app">
+  <a class="back-btn" href="../index.html">← Back to Pipeline</a>
+
+  <div class="page-header">
+    <div class="breadcrumb">Pipeline · <span>Step 2 of 3</span></div>
+    <div class="page-title">NFA → DFA</div>
+    <div class="page-subtitle">Converting the NFA to a Deterministic Finite Automaton using the Subset Construction (Powerset Construction) algorithm.</div>
+    <div class="regex-display">
+      <span class="regex-label">Regex</span>
+      <span class="regex-value" id="regexDisplay">(a+b)*abb</span>
+    </div>
+  </div>
+
+  <!-- STEP 1: What is Subset Construction -->
+  <div class="section">
+    <div class="section-head">
+      <div class="step-num">1</div>
+      <div class="section-title">What is Subset Construction?</div>
+    </div>
+    <div class="section-body">
+      <div class="infobox dfa">
+        <div class="infobox-title">Subset Construction Algorithm</div>
+        <p>Subset Construction (also called Powerset Construction) converts an NFA to an equivalent DFA. The key idea is that each <strong>DFA state</strong> represents a <strong>set of NFA states</strong> — specifically, all NFA states the machine could simultaneously be in after reading the same input.</p>
+        <p>Since a DFA must be deterministic, we compute — for every possible set of NFA states and every input symbol — exactly where we end up. This eliminates non-determinism.</p>
+      </div>
+      <div class="stable"><table class="stable">
+        <thead><tr><th>Concept</th><th>NFA</th><th>DFA (after construction)</th></tr></thead>
+        <tbody>
+          <tr><td>Transitions</td><td>Multiple possible next states</td><td class="hl">Exactly one next state</td></tr>
+          <tr><td>States</td><td>Individual NFA states</td><td class="hl">Each = a set of NFA states</td></tr>
+          <tr><td>ε-transitions</td><td>Present (free moves)</td><td class="hl">Eliminated (folded into ε-closure)</td></tr>
+          <tr><td>Accept states</td><td>Any NFA accept state</td><td class="hl">Any DFA state containing an NFA accept state</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- STEP 2: ε-closure definition -->
+  <div class="section">
+    <div class="section-head">
+      <div class="step-num">2</div>
+      <div class="section-title">ε-Closure — The Foundation</div>
+    </div>
+    <div class="section-body">
+      <p>The <strong>ε-closure</strong> of a set of states S is the set of all states reachable from any state in S using only ε (epsilon) transitions — without consuming any input symbol.</p>
+      <div class="callout info">
+        <span class="callout-icon">ℹ</span>
+        <p><strong>ε-closure(S)</strong> = S ∪ { all states reachable from S via one or more ε-transitions }</p>
+      </div>
+      <p>We also define <strong>move(S, a)</strong> as the set of states reachable from any state in S via exactly one transition on input symbol <em>a</em>.</p>
+      <p style="margin-top:8px;">The full transition in the DFA is then: <strong>δ_DFA(S, a) = ε-closure( move(S, a) )</strong></p>
+      <div id="epsilonClosureTable"></div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Alphabet -->
+  <div class="section">
+    <div class="section-head">
+      <div class="step-num">3</div>
+      <div class="section-title">Input Alphabet</div>
+    </div>
+    <div class="section-body">
+      <p>The alphabet is all symbols that appear in the NFA's transitions (excluding ε).</p>
+      <div id="alphabetDisplay"></div>
+    </div>
+  </div>
+
+  <!-- STEP 4: Subset construction worklist -->
+  <div class="section">
+    <div class="section-head">
+      <div class="step-num">4</div>
+      <div class="section-title">Subset Construction — Step-by-Step Worklist</div>
+    </div>
+    <div class="section-body">
+      <p>Starting from the ε-closure of the NFA's start state, we process each DFA state by computing its transitions on every input symbol. New DFA states are added when we encounter a new NFA subset.</p>
+      <div id="worklistSteps"></div>
+    </div>
+  </div>
+
+  <!-- STEP 5: Final DFA table -->
+  <div class="section">
+    <div class="section-head">
+      <div class="step-num">5</div>
+      <div class="section-title">Completed DFA — Transition Table</div>
+    </div>
+    <div class="section-body">
+      <p>The full DFA transition table. Each DFA state shows its corresponding NFA subset.</p>
+      <div id="dfaFinalTable"></div>
+      <div class="callout ok" style="margin-top:16px;">
+        <span class="callout-icon">✓</span>
+        <p><strong>DFA complete.</strong> This DFA is equivalent to the original NFA and accepts the same language. Next: minimize this DFA using Table Filling (Myhill-Nerode).</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:14px;justify-content:center;margin-top:32px;flex-wrap:wrap;">
+    <a href="steps-nfa.html" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:10px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.3);color:var(--a2);font-family:var(--font-body);font-weight:600;font-size:.88rem;text-decoration:none;transition:all .2s;" onmouseover="this.style.background='rgba(139,92,246,.18)'" onmouseout="this.style.background='rgba(139,92,246,.08)'">
+      ← Back: Regex → NFA
+    </a>
+    <a href="steps-min.html" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:10px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.3);color:var(--a3);font-family:var(--font-body);font-weight:600;font-size:.88rem;text-decoration:none;transition:all .2s;" onmouseover="this.style.background='rgba(16,185,129,.18)'" onmouseout="this.style.background='rgba(16,185,129,.08)'">
+      Continue: DFA → Min-DFA →
+    </a>
+  </div>
+</div>
+<script src="../js/steps-dfa.js"></script>
+</body>
+</html>

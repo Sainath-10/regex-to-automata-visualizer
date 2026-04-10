@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Step-by-Step: Regex → NFA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/steps-nfa.css">
+</head>
+<body>
+<div class="app">
+  <a class="back-btn" href="../index.html">← Back to Pipeline</a>
+
+  <div class="page-header">
+    <div class="breadcrumb">Pipeline · <span>Step 1 of 3</span></div>
+    <div class="page-title">Regex → NFA</div>
+    <div class="page-subtitle">Converting a regular expression to a Non-deterministic Finite Automaton using Thompson's Construction.</div>
+    <div class="regex-display">
+      <span class="regex-label">Regex</span>
+      <span class="regex-value" id="regexDisplay">(a+b)*abb</span>
+    </div>
+  </div>
+
+  <!-- STEP 1: What is Thompson's Construction -->
+  <div class="section">
+    <div class="section-head">
+      <div class="step-num">1</div>
+      <div class="section-title">What is Thompson's Construction?</div>
+    </div>
+    <div class="section-body">
+      <div class="infobox nfa">
+        <div class="infobox-title">Thompson's Construction Algorithm</div>
+        <p>Thompson's Construction is a systematic algorithm that converts any regular expression into an equivalent NFA. It works by breaking the regex into its atomic pieces and combining them using a fixed set of NFA fragment templates — one per regex operator.</p>
+        <p>The resulting NFA has exactly one start state and one accept state, with ε (epsilon) transitions used to connect fragments together.</p>
+      </div>
+      <p>Key properties of a Thompson NFA:</p>
+      <div class="stable" style="margin-top:8px;">
+        <table class="stable">
+          <thead><tr><th>Property</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr><td class="hl">Single start state</td><td>Exactly one state with no incoming transitions</td></tr>
+            <tr><td class="hl">Single accept state</td><td>Exactly one final/accepting state</td></tr>
+            <tr><td class="hl">ε-transitions</td><td>Used freely to connect sub-NFAs without consuming input</td></tr>
+            <tr><td class="hl">No accept-state outgoing</td><td>The accept state has no outgoing transitions</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Tokenization -->
+  <div class="section">
+    <div class="section-head">
+      <div class="step-num">2</div>
+      <div class="section-title">Tokenization — Reading the Regex</div>
+    </div>
+    <div class="section-body">
+      <p>The first step is to scan the regex character by character and classify each character as either a <strong>symbol</strong> (literal input character like <code style="font-family:var(--font-mono);color:var(--a1)">a</code>, <code style="font-family:var(--font-mono);color:var(--a1)">b</code>) or an <strong>operator</strong> (<code style="font-family:var(--font-mono);color:var(--a2)">*</code>, <code style="font-family:var(--font-mono);color:var(--a2)">+</code>, <code style="font-family:var(--font-mono);color:var(--a2)">(</code>, <code style="font-family:var(--font-mono);color:var(--a2)">)</code>).</p>
+      <div id="tokenTable"></div>
+      <div class="callout info">
+        <span class="callout-icon">ℹ</span>
+        <p>Concatenation is <strong>implicit</strong> — there is no explicit concatenation character in the regex. The parser inserts a hidden <code style="font-family:var(--font-mono);color:var(--a2)">·</code> operator where two tokens are juxtaposed and concatenation is meant.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Concatenation insertion -->
+  <div class="section">
+    <div class="section-head">
+      <div class="step-num">3</div>
+      <div class="section-title">Inserting Explicit Concatenation Operators</div>
+    </div>
+    <div class="section-body">
+      <p>After tokenizing, we insert an explicit <strong>concatenation operator</strong> <code style="font-family:var(--font-mono);color:var(--a2)">·</code> between adjacent tokens wherever concatenation is implied. The rule is: insert <code style="font-family:var(--font-mono);color:var(--a2)">·</code> when the left token is a symbol, <code style="font-family:var(--font-mono);color:var(--a2)">*</code>, or <code style="font-family:var(--font-mono);color:var(--a2)">)</code>, AND the right token is a symbol or <code style="font-family:var(--font-mono);color:var(--a2)">(</code>.</p>
+      <div id="concatFlow"></div>
+    </div>
+  </div>
+
+  <!-- STEP 4: Shunting Yard / Postfix -->
+  <div class="section">
+    <div class="section-head">
+      <div class="step-num">4</div>
+      <div class="section-title">Shunting-Yard: Infix → Postfix (Reverse Polish Notation)</div>
+    </div>
+    <div class="section-body">
+      <p>We convert the infix token stream to <strong>postfix notation</strong> using the Shunting-Yard algorithm. In postfix, operators come after their operands — no parentheses needed. Operator precedence is:</p>
+      <div class="stable"><table class="stable">
+        <thead><tr><th>Operator</th><th>Symbol</th><th>Precedence</th><th>Associativity</th></tr></thead>
+        <tbody>
+          <tr><td>Kleene Star</td><td class="hl">*</td><td>3 (highest)</td><td>Right</td></tr>
+          <tr><td>Concatenation</td><td class="hl">·</td><td>2</td><td>Left</td></tr>
+          <tr><td>Union</td><td class="hl">+</td><td>1 (lowest)</td><td>Left</td></tr>
+        </tbody>
+      </table></div>
+      <p style="margin-top:12px;"><strong>Postfix output for your regex:</strong></p>
+      <div id="postfixFlow"></div>
+    </div>
+  </div>
+
+  <!-- STEP 5: NFA Fragment Rules -->
+  <div class="section">
+    <div class="section-head">
+      <div class="step-num">5</div>
+      <div class="section-title">NFA Fragment Construction Rules</div>
+    </div>
+    <div class="section-body">
+      <p>Each token in the postfix expression is processed using one of these fragment templates. Symbols push a new fragment; operators pop fragments and combine them.</p>
+      <div class="frag-grid">
+        <div class="frag-card">
+          <div class="frag-op">Symbol / Literal</div>
+          <div class="frag-title">Single character <code style="font-family:var(--font-mono);color:var(--a1)">a</code></div>
+          <div class="frag-visual">
+            →&nbsp;<span class="state">q₀</span>&nbsp;<span class="arr">─</span><span class="lbl">a</span><span class="arr">→</span>&nbsp;<span class="state acc">q₁</span>
+          </div>
+          <div class="frag-desc">Two states. One transition on the symbol. q₁ is the accept state.</div>
+        </div>
+        <div class="frag-card">
+          <div class="frag-op">Concatenation ·</div>
+          <div class="frag-title">AB — A then B</div>
+          <div class="frag-visual">
+            →<span class="state">A₀</span><span class="arr">──</span><span class="state">Aₙ</span><span class="eps">─ε→</span><span class="state">B₀</span><span class="arr">──</span><span class="state acc">Bₙ</span>
+          </div>
+          <div class="frag-desc">Connect A's accept state to B's start via ε. A's accept is no longer accepting.</div>
+        </div>
+        <div class="frag-card">
+          <div class="frag-op">Union +</div>
+          <div class="frag-title">A+B — A or B</div>
+          <div class="frag-visual">
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="state">A₀</span><span class="arr">──</span><span class="state">Aₙ</span><span class="eps">─ε→</span><br/>
+            →<span class="state">S</span><span class="eps">─ε→</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="state acc">E</span><br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="state">B₀</span><span class="arr">──</span><span class="state">Bₙ</span><span class="eps">─ε→</span>
+          </div>
+          <div class="frag-desc">New start S branches ε to both A and B. Both A and B's accepts ε to new accept E.</div>
+        </div>
+        <div class="frag-card">
+          <div class="frag-op">Kleene Star *</div>
+          <div class="frag-title">A* — zero or more of A</div>
+          <div class="frag-visual">
+            →<span class="state">S</span><span class="eps">─ε→</span><span class="state">A₀</span><span class="arr">──</span><span class="state">Aₙ</span><span class="eps">─ε→</span><span class="state acc">E</span><br/>
+            &nbsp;&nbsp;<span class="eps">└─ε──────────────────────┘</span><br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="eps">└─ε→A₀ (loop)</span>
+          </div>
+          <div class="frag-desc">New start S can skip directly to E (zero times) or enter A. A's accept loops back to A₀ and also exits to E.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 6: Stack trace / build steps -->
+  <div class="section">
+    <div class="section-head">
+      <div class="step-num">6</div>
+      <div class="section-title">Building the NFA — Stack Trace</div>
+    </div>
+    <div class="section-body">
+      <p>Processing the postfix token stream left to right. Each symbol pushes a fragment; each operator pops and combines:</p>
+      <div id="stackTrace"></div>
+    </div>
+  </div>
+
+  <!-- STEP 7: Final NFA state table -->
+  <div class="section">
+    <div class="section-head">
+      <div class="step-num">7</div>
+      <div class="section-title">Final NFA — State Transition Table</div>
+    </div>
+    <div class="section-body">
+      <p>All states and their transitions in the completed NFA. ε transitions are shown explicitly.</p>
+      <div id="nfaTable"></div>
+      <div class="callout ok" style="margin-top:16px;">
+        <span class="callout-icon">✓</span>
+        <p><strong>NFA complete.</strong> The NFA accepts the same language as the original regular expression. Next step: convert this NFA to a DFA using Subset Construction.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:32px;">
+    <a href="steps-dfa.html" style="display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:10px;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);color:var(--a1);font-family:var(--font-body);font-weight:600;font-size:.9rem;text-decoration:none;transition:all .2s;" onmouseover="this.style.background='rgba(0,229,255,.2)'" onmouseout="this.style.background='rgba(0,229,255,.1)'">
+      Continue: NFA → DFA (Subset Construction) →
+    </a>
+  </div>
+</div>
+<script src="../js/steps-nfa.js"></script>
+</body>
+</html>

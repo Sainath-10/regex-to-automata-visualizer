@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RE → NFA → DFA → Min-DFA Pipeline</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="css/index.css">
+</head>
+
+<body>
+  <div class="app">
+
+    <header>
+      <div class="logo">RE <span>→</span> NFA <span>→</span> DFA <span>→</span> Min-DFA</div>
+      <div class="sub">Theory of Computation</div>
+    </header>
+
+    <div class="pipe-bar">
+      <div class="ps s1" id="ps1">① Regex Input</div>
+      <div class="parr">→</div>
+      <div class="ps s2" id="ps2">② NFA (Thompson's)</div>
+      <div class="parr">→</div>
+      <div class="ps s3" id="ps3">③ DFA (Subset Construction)</div>
+      <div class="parr">→</div>
+      <div class="ps s4" id="ps4">④ Min-DFA (Table Filling)</div>
+    </div>
+
+    <div class="input-sec">
+      <div class="irow">
+        <span class="ilabel">Regex:</span>
+        <input class="rex-in" id="regexIn" type="text" value="(aa+bb)*" spellcheck="false"
+          placeholder="e.g. (aa+bb)*" />
+        <button class="btn btn-run" onclick="runPipeline()">▶ Run Pipeline</button>
+        <button class="btn btn-clr" onclick="clearAll()">✕ Clear</button>
+      </div>
+      <div class="hint">Operators: <b>*</b> Kleene star &nbsp;·&nbsp; <b>+</b> union (OR) &nbsp;·&nbsp; <b>()</b>
+        grouping &nbsp;·&nbsp; Concatenation is implicit</div>
+      <div class="presets">
+        <span style="font-size:.68rem;color:var(--t3);align-self:center;font-family:var(--font-body)">Presets:</span>
+        <button class="pre-btn" onclick="setP('(a+b)*abb')">(a+b)*abb</button>
+        <button class="pre-btn" onclick="setP('a*b*')">a*b*</button>
+        <button class="pre-btn" onclick="setP('(a*+b)ab*')">(a*+b)ab*</button>
+        <button class="pre-btn" onclick="setP('ab+cd')">ab+cd</button>
+        <button class="pre-btn" onclick="setP('a(b+c)*d')">a(b+c)*d</button>
+        <button class="pre-btn" onclick="setP('(aa+bb)*')">(aa+bb)*</button>
+        <button class="pre-btn" onclick="setP('(a+b)*(aa+bb)')">(a+b)*(aa+bb)</button>
+      </div>
+      <div class="errmsg" id="errMsg"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="scard">
+        <div class="slabel">NFA — Thompson's</div>
+        <div class="svals">
+          <div class="sitem"><span class="snum n-nfa" id="nfaS">—</span><span class="sdesc">states</span></div>
+          <div class="sitem"><span class="snum n-nfa" id="nfaT">—</span><span class="sdesc">transitions</span></div>
+          <div class="sitem"><span class="snum n-nfa" id="nfaE">—</span><span class="sdesc">ε-moves</span></div>
+        </div>
+      </div>
+      <div class="scard">
+        <div class="slabel">DFA — Subset Construction</div>
+        <div class="svals">
+          <div class="sitem"><span class="snum n-dfa" id="dfaS">—</span><span class="sdesc">states</span></div>
+          <div class="sitem"><span class="snum n-dfa" id="dfaT">—</span><span class="sdesc">transitions</span></div>
+        </div>
+      </div>
+      <div class="scard">
+        <div class="slabel">Min-DFA — Table Filling</div>
+        <div class="svals">
+          <div class="sitem"><span class="snum n-min" id="minS">—</span><span class="sdesc">states</span></div>
+          <div class="sitem"><span class="snum n-min" id="minR">—</span><span class="sdesc">states removed</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NFA Panel -->
+    <div class="gpanel" id="panNFA">
+      <div class="ghead">
+        <div>
+          <div class="gtitle nfa">② NFA — Thompson's Construction</div>
+          <div class="ghead-sub">Each regex operator maps to an NFA fragment. ε = epsilon transition.</div>
+        </div>
+        <div class="ghead-right">
+          <div class="gzoom">
+            <div class="zb" onclick="zI('nfaCanvas')">+</div>
+            <div class="zb" onclick="zO('nfaCanvas')">−</div>
+            <div class="zb zb-reset" onclick="zR('nfaCanvas')">reset</div>
+          </div>
+          <span class="gbadge b-nfa" id="nfaBadge">—</span>
+        </div>
+      </div>
+      <div class="ginfo" id="nfaInfo">
+        <span class="gstat nv">States: <b id="nfaIS">—</b></span>
+        <span class="gstat nv">ε-transitions: <b id="nfaIE">—</b></span>
+        <span class="gstat nv">Symbol transitions: <b id="nfaISY">—</b></span>
+      </div>
+      <div class="gcanvas" id="nfaCanvas">
+        <div class="empty-st">
+          <div class="empty-ic">◈</div>
+          <div>Enter a regex and click Run Pipeline</div>
+        </div>
+      </div>
+      <div class="steps-bar">
+        <div class="steps-legend">
+          <div class="gl-item"><svg width="20" height="10">
+              <line x1="0" y1="5" x2="18" y2="5" stroke="#8b5cf6" stroke-width="1.5" marker-end="url(#a1)" />
+            </svg> symbol transition</div>
+          <div class="gl-item"><svg width="20" height="10">
+              <line x1="0" y1="5" x2="18" y2="5" stroke="rgba(139,92,246,0.45)" stroke-width="1.3"
+                stroke-dasharray="4,3" />
+            </svg> ε transition</div>
+          <div class="gl-item"><svg width="22" height="20">
+              <circle cx="11" cy="11" r="8" fill="none" stroke="#8b5cf6" stroke-width="1.5" />
+              <circle cx="11" cy="11" r="5" fill="none" stroke="#f59e0b" stroke-width="1" />
+            </svg> accept state</div>
+          <div class="gl-item"><svg width="30" height="20">
+              <line x1="0" y1="10" x2="10" y2="10" stroke="#8b5cf6" stroke-width="1.5" />
+              <circle cx="18" cy="10" r="7" fill="none" stroke="#8b5cf6" stroke-width="1.5" />
+            </svg> start state</div>
+        </div>
+        <button class="btn-steps btn-steps-nfa" onclick="openSteps('nfa')">View Step-by-Step: Regex → NFA ↗</button>
+      </div>
+    </div>
+
+    <!-- DFA Panel -->
+    <div class="gpanel" id="panDFA">
+      <div class="ghead">
+        <div>
+          <div class="gtitle dfa">③ DFA — Subset Construction (NFA → DFA)</div>
+          <div class="ghead-sub">Each DFA state represents a set of NFA states reached together.</div>
+        </div>
+        <div class="ghead-right">
+          <div class="gzoom">
+            <div class="zb" onclick="zI('dfaCanvas')">+</div>
+            <div class="zb" onclick="zO('dfaCanvas')">−</div>
+            <div class="zb zb-reset" onclick="zR('dfaCanvas')">reset</div>
+          </div>
+          <span class="gbadge b-dfa" id="dfaBadge">—</span>
+        </div>
+      </div>
+      <div class="ginfo" id="dfaInfo">
+        <span class="gstat dv">States: <b id="dfaIS">—</b></span>
+        <span class="gstat dv">Transitions: <b id="dfaIT">—</b></span>
+      </div>
+      <div class="gcanvas" id="dfaCanvas">
+        <div class="empty-st">
+          <div class="empty-ic">◈</div>
+          <div>NFA will convert here</div>
+        </div>
+      </div>
+      <div class="steps-bar">
+        <div class="steps-legend">
+          <div class="gl-item"><span style="color:var(--a1);font-family:var(--font-mono);font-size:.68rem;">D0,
+              D1...</span>&nbsp; DFA states</div>
+          <div class="gl-item"><svg width="22" height="20">
+              <circle cx="11" cy="11" r="8" fill="none" stroke="#0891b2" stroke-width="1.5" />
+              <circle cx="11" cy="11" r="5" fill="none" stroke="#f59e0b" stroke-width="1" />
+            </svg> accept state</div>
+        </div>
+        <button class="btn-steps btn-steps-dfa" onclick="openSteps('dfa')">View Step-by-Step: NFA → DFA ↗</button>
+      </div>
+    </div>
+
+
+
+    <!-- Min-DFA Panel -->
+    <div class="gpanel" id="panMin">
+      <div class="ghead">
+        <div>
+          <div class="gtitle min">④ Min-DFA — Table Filling / Myhill-Nerode</div>
+          <div class="ghead-sub">Indistinguishable DFA states are merged. Minimal state count for this language.</div>
+        </div>
+        <div class="ghead-right">
+          <div class="gzoom">
+            <div class="zb" onclick="zI('minCanvas')">+</div>
+            <div class="zb" onclick="zO('minCanvas')">−</div>
+            <div class="zb zb-reset" onclick="zR('minCanvas')">reset</div>
+          </div>
+          <span class="gbadge b-min" id="minBadge">—</span>
+        </div>
+      </div>
+      <div class="ginfo" id="minInfo">
+        <span class="gstat mv">States: <b id="minIS">—</b></span>
+        <span class="gstat mv">Reduced from: <b id="minIR">—</b></span>
+      </div>
+      <div class="gcanvas" id="minCanvas">
+        <div class="empty-st">
+          <div class="empty-ic">◈</div>
+          <div>DFA will minimize here</div>
+        </div>
+      </div>
+      <div class="steps-bar">
+        <div class="steps-legend">
+          <div class="gl-item"><span style="color:var(--a3);font-family:var(--font-mono);font-size:.68rem;">M0,
+              M1...</span>&nbsp; minimized states</div>
+          <div class="gl-item"><svg width="22" height="20">
+              <circle cx="11" cy="11" r="8" fill="none" stroke="#059669" stroke-width="1.5" />
+              <circle cx="11" cy="11" r="5" fill="none" stroke="#f59e0b" stroke-width="1" />
+            </svg> accept state</div>
+        </div>
+        <button class="btn-steps btn-steps-min" onclick="openSteps('min')">View Step-by-Step: DFA → Min-DFA ↗</button>
+      </div>
+    </div>
+
+    <!-- String Tester -->
+    <div class="tester">
+      <div class="tsec-title">⚡ String Tester — Live Traversal</div>
+      <div class="trow">
+        <input class="tin" id="testIn" type="text" placeholder="Type a string to test, e.g. aabb" spellcheck="false" />
+        <button class="btn-test" onclick="testStr()">Test Instant</button>
+      </div>
+
+      <div class="t-btn-group">
+        <button class="btn-icon" id="btnStep" onclick="stepVisual()" title="Next Character">
+          <span>⏭</span> Step
+        </button>
+        <button class="btn-icon" id="btnPlay" onclick="togglePlay()" title="Auto Play">
+          <span id="playIcon">▶</span> <span id="playText">Play</span>
+        </button>
+        <button class="btn-icon" id="btnReset" onclick="resetVisual()" title="Reset Traversal">
+          <span>↺</span> Reset
+        </button>
+      </div>
+
+      <div class="test-progress" id="testProg">
+        Tape: <span id="progTape"></span>
+      </div>
+
+      <div class="trace-area" id="traceArea" style="display:none"></div>
+    </div>
+
+    <!-- Transition Tables -->
+    <div class="table-sec">
+      <div class="table-sec-title">Transition Tables</div>
+      <div class="tabs">
+        <button class="tab active" id="tabDFA" onclick="showTab('dfa')">DFA Transition Table</button>
+        <button class="tab" id="tabMin" onclick="showTab('min')">Min-DFA Transition Table</button>
+      </div>
+      <div id="tblContent">
+        <div style="color:var(--t3);font-size:.78rem;font-family:var(--font-mono)">Run the pipeline to see transition
+          tables.</div>
+      </div>
+    </div>
+
+  </div>
+  <script src="js/index.js"></script>
+</body>
+
+</html>
