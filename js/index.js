@@ -40,7 +40,7 @@ function toPostfix(toks) {
   return out;
 }
 
-// ── THOMPSON'S NFA ───────────────────────────────────────────────────────────
+// ── NFA CONSTRUCTION ─────────────────────────────────────────────────────────
 let _sid = 0;
 function ns(acc = false) { return { id: _sid++, accept: acc, trans: {} }; }
 function at(f, sym, t) { if (!f.trans[sym]) f.trans[sym] = []; f.trans[sym].push(t); }
@@ -72,7 +72,7 @@ function collectStates(start) {
   return map;
 }
 
-// ── SUBSET CONSTRUCTION ──────────────────────────────────────────────────────
+// ── NFA TO DFA CONVERSION ────────────────────────────────────────────────────
 function epsClosure(ids, map) {
   const c = new Set(ids), stk = [...ids];
   while (stk.length) { const id = stk.pop(); const s = map.get(id); if (!s) continue; for (const t of (s.trans['ε'] || [])) if (!c.has(t.id)) { c.add(t.id); stk.push(t.id); } }
@@ -459,11 +459,11 @@ function renderLive() {
   if (!gNfaFrag) return;
   
   if (vm === 'nfa') {
-    title.innerHTML = '⚡ Thompson\'s NFA Simulation';
+    title.innerHTML = '⚡ NFA Simulation';
     const { nodes, links } = nfaData(gNfaFrag.start, gSmap);
     renderGraph('liveCanvas', nodes, links, { color: '#8b5cf6' });
   } else if (vm === 'dfa') {
-    title.innerHTML = '⚡ DFA Subset Simulation';
+    title.innerHTML = '⚡ DFA Simulation';
     const { nodes, links } = dfaData(gDFA.states, gDFA.startKey);
     renderGraph('liveCanvas', nodes, links, { color: '#0891b2', subsets: true });
   } else {

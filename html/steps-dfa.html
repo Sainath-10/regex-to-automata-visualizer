@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Step-by-Step: NFA → DFA</title>
+<title>Step-by-Step: NFA → DFA Conversion</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
@@ -14,29 +14,28 @@
   <a class="back-btn" href="../index.html">← Back to Pipeline</a>
 
   <div class="page-header">
-    <div class="breadcrumb">Pipeline · <span>Step 2 of 3</span></div>
+    <div class="breadcrumb">Pipeline · <span>DFA Conversion</span></div>
     <div class="page-title">NFA → DFA</div>
-    <div class="page-subtitle">Converting the NFA to a Deterministic Finite Automaton using the Subset Construction (Powerset Construction) algorithm.</div>
+    <div class="page-subtitle">Converting the NFA to a Deterministic Finite Automaton using the NFA to DFA Conversion algorithm.</div>
     <div class="regex-display">
       <span class="regex-label">Regex</span>
       <span class="regex-value" id="regexDisplay">(a+b)*abb</span>
     </div>
   </div>
 
-  <!-- STEP 1: What is Subset Construction -->
+  <!-- STEP 1: What is NFA to DFA Conversion -->
   <div class="section">
     <div class="section-head">
-      <div class="step-num">1</div>
-      <div class="section-title">What is Subset Construction?</div>
+      <div class="section-title">The Principle of DFA Construction</div>
     </div>
     <div class="section-body">
       <div class="infobox dfa">
-        <div class="infobox-title">Subset Construction Algorithm</div>
-        <p>Subset Construction (also called Powerset Construction) converts an NFA to an equivalent DFA. The key idea is that each <strong>DFA state</strong> represents a <strong>set of NFA states</strong> — specifically, all NFA states the machine could simultaneously be in after reading the same input.</p>
-        <p>Since a DFA must be deterministic, we compute — for every possible set of NFA states and every input symbol — exactly where we end up. This eliminates non-determinism.</p>
+        <div class="infobox-title">State-Set Equivalence</div>
+        <p>An NFA can be in multiple states at once. To build a deterministic machine, we create a <strong>DFA State</strong> for every unique <strong>set of NFA states</strong> the machine could possibly be in.</p>
+        <p>By tracking sets of states rather than individual states, we eliminate the ambiguity of non-deterministic transitions.</p>
       </div>
       <div class="stable"><table class="stable">
-        <thead><tr><th>Concept</th><th>NFA</th><th>DFA (after construction)</th></tr></thead>
+        <thead><tr><th>Concept</th><th>NFA</th><th>DFA (after conversion)</th></tr></thead>
         <tbody>
           <tr><td>Transitions</td><td>Multiple possible next states</td><td class="hl">Exactly one next state</td></tr>
           <tr><td>States</td><td>Individual NFA states</td><td class="hl">Each = a set of NFA states</td></tr>
@@ -50,11 +49,10 @@
   <!-- STEP 2: ε-closure definition -->
   <div class="section">
     <div class="section-head">
-      <div class="step-num">2</div>
-      <div class="section-title">ε-Closure — The Foundation</div>
+      <div class="section-title">Stage 1: Establishing Reachability (ε-Closure)</div>
     </div>
     <div class="section-body">
-      <p>The <strong>ε-closure</strong> of a set of states S is the set of all states reachable from any state in S using only ε (epsilon) transitions — without consuming any input symbol.</p>
+      <p>The <strong>ε-closure</strong> defines all states reachable from a given set using only ε (epsilon) moves. This allows the DFA to account for "hidden" non-deterministic moves before processing any actual input symbol.</p>
       <div class="callout info">
         <span class="callout-icon">ℹ</span>
         <p><strong>ε-closure(S)</strong> = S ∪ { all states reachable from S via one or more ε-transitions }</p>
@@ -68,8 +66,7 @@
   <!-- STEP 3: Alphabet -->
   <div class="section">
     <div class="section-head">
-      <div class="step-num">3</div>
-      <div class="section-title">Input Alphabet</div>
+      <div class="section-title">Stage 2: Defining the Input Alphabet</div>
     </div>
     <div class="section-body">
       <p>The alphabet is all symbols that appear in the NFA's transitions (excluding ε).</p>
@@ -77,14 +74,13 @@
     </div>
   </div>
 
-  <!-- STEP 4: Subset construction worklist -->
+  <!-- STEP 4: NFA to DFA Conversion worklist -->
   <div class="section">
     <div class="section-head">
-      <div class="step-num">4</div>
-      <div class="section-title">Subset Construction — Step-by-Step Worklist</div>
+      <div class="section-title">Stage 3: Iterative State Discovery</div>
     </div>
     <div class="section-body">
-      <p>Starting from the ε-closure of the NFA's start state, we process each DFA state by computing its transitions on every input symbol. New DFA states are added when we encounter a new NFA subset.</p>
+      <p>Starting from the initial ε-closure, we build the DFA by finding new state-sets reachable via every alphabet symbol. This process continues until every possible reachable set has been defined as a DFA state.</p>
       <div id="worklistSteps"></div>
     </div>
   </div>
@@ -92,15 +88,14 @@
   <!-- STEP 5: Final DFA table -->
   <div class="section">
     <div class="section-head">
-      <div class="step-num">5</div>
-      <div class="section-title">Completed DFA — Transition Table</div>
+      <div class="section-title">Stage 4: Completed Deterministic Machine</div>
     </div>
     <div class="section-body">
-      <p>The full DFA transition table. Each DFA state shows its corresponding NFA subset.</p>
+      <p>The final DFA transition table. Every transition is now unique and deterministic. Any DFA state containing an original NFA accept state becomes an accept state in the DFA.</p>
       <div id="dfaFinalTable"></div>
       <div class="callout ok" style="margin-top:16px;">
         <span class="callout-icon">✓</span>
-        <p><strong>DFA complete.</strong> This DFA is equivalent to the original NFA and accepts the same language. Next: minimize this DFA using Table Filling (Myhill-Nerode).</p>
+        <p><strong>DFA complete.</strong> This DFA is equivalent to the original NFA and accepts the same language. Next step: minimize this DFA using Table Filling (Myhill-Nerode).</p>
       </div>
     </div>
   </div>

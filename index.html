@@ -23,13 +23,13 @@
     </header>
 
     <div class="pipe-bar">
-      <div class="ps s1" id="ps1">① Regex Input</div>
+      <div class="ps s1" id="ps1">Regex Input</div>
       <div class="parr">→</div>
-      <div class="ps s2" id="ps2">② NFA (Thompson's)</div>
+      <div class="ps s2" id="ps2">NFA</div>
       <div class="parr">→</div>
-      <div class="ps s3" id="ps3">③ DFA (Subset Construction)</div>
+      <div class="ps s3" id="ps3">DFA</div>
       <div class="parr">→</div>
-      <div class="ps s4" id="ps4">④ Min-DFA (Table Filling)</div>
+      <div class="ps s4" id="ps4">Min-DFA</div>
     </div>
 
     <div class="input-sec">
@@ -58,7 +58,7 @@
     <!-- Stats -->
     <div class="stats-row">
       <div class="scard">
-        <div class="slabel">NFA — Thompson's</div>
+        <div class="slabel">NFA</div>
         <div class="svals">
           <div class="sitem"><span class="snum n-nfa" id="nfaS">—</span><span class="sdesc">states</span></div>
           <div class="sitem"><span class="snum n-nfa" id="nfaT">—</span><span class="sdesc">transitions</span></div>
@@ -66,14 +66,14 @@
         </div>
       </div>
       <div class="scard">
-        <div class="slabel">DFA — Subset Construction</div>
+        <div class="slabel">DFA</div>
         <div class="svals">
           <div class="sitem"><span class="snum n-dfa" id="dfaS">—</span><span class="sdesc">states</span></div>
           <div class="sitem"><span class="snum n-dfa" id="dfaT">—</span><span class="sdesc">transitions</span></div>
         </div>
       </div>
       <div class="scard">
-        <div class="slabel">Min-DFA — Table Filling</div>
+        <div class="slabel">Min-DFA</div>
         <div class="svals">
           <div class="sitem"><span class="snum n-min" id="minS">—</span><span class="sdesc">states</span></div>
           <div class="sitem"><span class="snum n-min" id="minR">—</span><span class="sdesc">states removed</span></div>
@@ -85,7 +85,7 @@
     <div class="gpanel" id="panNFA">
       <div class="ghead">
         <div>
-          <div class="gtitle nfa">② NFA — Thompson's Construction</div>
+          <div class="gtitle nfa">NFA</div>
           <div class="ghead-sub">Each regex operator maps to an NFA fragment. ε = epsilon transition.</div>
         </div>
         <div class="ghead-right">
@@ -126,7 +126,8 @@
               <circle cx="18" cy="10" r="7" fill="none" stroke="#8b5cf6" stroke-width="1.5" />
             </svg> start state</div>
         </div>
-        <button class="btn-steps btn-steps-nfa" onclick="openSteps('nfa')">View Step-by-Step: Regex → NFA ↗</button>
+        <button class="btn-steps btn-steps-nfa" onclick="openSteps('nfa')">View Step-by-Step: Regex → NFA Conversion
+          ↗</button>
       </div>
     </div>
 
@@ -134,7 +135,7 @@
     <div class="gpanel" id="panDFA">
       <div class="ghead">
         <div>
-          <div class="gtitle dfa">③ DFA — Subset Construction (NFA → DFA)</div>
+          <div class="gtitle dfa">DFA</div>
           <div class="ghead-sub">Each DFA state represents a set of NFA states reached together.</div>
         </div>
         <div class="ghead-right">
@@ -165,7 +166,8 @@
               <circle cx="11" cy="11" r="5" fill="none" stroke="#f59e0b" stroke-width="1" />
             </svg> accept state</div>
         </div>
-        <button class="btn-steps btn-steps-dfa" onclick="openSteps('dfa')">View Step-by-Step: NFA → DFA ↗</button>
+        <button class="btn-steps btn-steps-dfa" onclick="openSteps('dfa')">View Step-by-Step: NFA → DFA Conversion
+          ↗</button>
       </div>
     </div>
 
@@ -175,7 +177,7 @@
     <div class="gpanel" id="panMin">
       <div class="ghead">
         <div>
-          <div class="gtitle min">④ Min-DFA — Table Filling / Myhill-Nerode</div>
+          <div class="gtitle min">Min-DFA (Myhill-Nerode)</div>
           <div class="ghead-sub">Indistinguishable DFA states are merged. Minimal state count for this language.</div>
         </div>
         <div class="ghead-right">
