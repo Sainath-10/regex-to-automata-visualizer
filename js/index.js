@@ -156,9 +156,9 @@ function renderGraph(cid, nodes, links, opts = {}) {
 
   const svg = d3.select(el).append('svg').attr('width', W).attr('height', H);
   const defs = svg.append('defs');
-  const mkA = (id, col, rx = 32, mw = 7) => defs.append('marker').attr('id', id).attr('viewBox', '0 -5 10 10').attr('refX', rx).attr('refY', 0).attr('markerWidth', mw).attr('markerHeight', mw).attr('orient', 'auto').append('path').attr('d', 'M0,-5L10,0L0,5').attr('fill', col);
+  const mkA = (id, col, rx = 24, mw = 5) => defs.append('marker').attr('id', id).attr('viewBox', '0 -5 10 10').attr('refX', rx).attr('refY', 0).attr('markerWidth', mw).attr('markerHeight', mw).attr('orient', 'auto').append('path').attr('d', 'M0,-5L10,0L0,5').attr('fill', col);
   mkA(aid, color); mkA(aid + '-e', 'rgba(139,92,246,0.5)'); mkA(aid + '-h', '#f59e0b');
-  mkA(aid + '-s', color, 10, 5); // Use default panel color for start arrow
+  mkA(aid + '-s', color, 10, 4); // Use default panel color for start arrow
 
   const root = svg.append('g');
 
@@ -357,27 +357,87 @@ function runPipeline() {
 }
 
 // ── STRING TESTER ────────────────────────────────────────────────────────────
-function testStr() {
-  if (!gMin) { alert('Run the pipeline first!'); return; }
+function testStr(maxIdx = -1) {
+  if (!gMin || !gDFA || !gNfaFrag) return;
+  const vm = document.getElementById('vMachine').value;
   const str = document.getElementById('testIn').value;
-  const ms = gMin.states; let cur = gMin.startGroup, dead = false;
-  const trace = [{ sid: cur, sym: null }];
-  for (const ch of str) {
-    const s = ms.get(cur);
-    if (!s || s.trans[ch] === undefined) { dead = true; trace.push({ sid: null, sym: ch, dead: true }); break; }
-    cur = s.trans[ch]; trace.push({ sid: cur, sym: ch });
+  const pfx = vm === 'nfa' ? 'q' : (vm === 'dfa' ? 'D' : 'M');
+  
+  // If maxIdx is -1, use full string length
+  const limit = maxIdx === -1 ? str.length : maxIdx + 1;
+  const isFinalStep = limit === str.length;
+
+  let curSet = []; 
+  let curSingle = null; 
+  let dead = false;
+  const trace = [];
+
+  const ms = vm === 'nfa' ? gSmap : (vm === 'dfa' ? gDFA.states : gMin.states);
+
+  // Initialize
+  if (vm === 'nfa') {
+    curSet = Array.from(epsClosure([gNfaFrag.start.id], gSmap)).sort((a,b)=>a-b);
+    trace.push({ id: curSet.join(','), label: `{${curSet.map(i=>pfx+i).join(',')}}`, sym: null });
+  } else {
+    curSingle = vm === 'dfa' ? gDFA.states.get(gDFA.startKey).id : gMin.startGroup;
+    trace.push({ id: curSingle, label: pfx + curSingle, sym: null });
   }
-  const acc = !dead && ms.get(cur)?.accept;
+
+  // Process characters up to limit
+  for (let i = 0; i < limit; i++) {
+    const ch = str[i];
+    if (dead) break;
+    if (vm === 'nfa') {
+      const next = epsClosure(moveSet(new Set(curSet), ch, gSmap), gSmap);
+      if (!next.size) { dead = true; trace.push({ dead: true, sym: ch }); }
+      else {
+        curSet = Array.from(next).sort((a,b)=>a-b);
+        trace.push({ id: curSet.join(','), label: `{${curSet.map(i=>pfx+i).join(',')}}`, sym: ch });
+      }
+    } else {
+      const s = vm === 'dfa' ? Array.from(ms.values()).find(x => x.id === curSingle) : ms.get(curSingle);
+      if (!s || s.trans[ch] === undefined) { dead = true; trace.push({ dead: true, sym: ch }); }
+      else {
+        curSingle = s.trans[ch];
+        trace.push({ id: curSingle, label: pfx + curSingle, sym: ch });
+      }
+    }
+  }
+
+  // Acceptance check (only if at the end of the full string)
+  let acc = false;
+  if (!dead && isFinalStep) {
+    if (vm === 'nfa') {
+      acc = curSet.some(id => gSmap.get(id)?.accept);
+    } else if (vm === 'dfa') {
+      acc = Array.from(gDFA.states.values()).find(s => s.id === curSingle)?.accept;
+    } else {
+      acc = ms.get(curSingle)?.accept;
+    }
+  }
+
+  // Build Results UI
   let h = '<div class="trace-steps">';
   for (let i = 0; i < trace.length; i++) {
     const t = trace[i];
     if (i > 0) h += `<span class="tarr">─</span><span class="tsym">${t.sym}</span><span class="tarr">→</span>`;
     if (t.dead) h += `<span class="tstate dead">DEAD</span>`;
-    else { const last = i === trace.length - 1; h += `<span class="tstate ${last ? 'cur' : 'vis'}">M${t.sid}</span>`; }
+    else { const last = i === trace.length - 1; h += `<span class="tstate ${last ? 'cur' : 'vis'}">${t.label}</span>`; }
   }
-  h += `</div><div class="verdict ${acc ? 'acc' : 'rej'}">${acc ? '✓ ACCEPTED' : '✗ REJECTED'} — ${acc ? 'string belongs to the language' : 'string is not in the language'}</div>`;
-  const ta = document.getElementById('traceArea'); ta.innerHTML = h; ta.style.display = 'block';
-  if (!dead) { hlRow = cur; renderTable(tabMode); }
+  h += '</div>';
+
+  if (isFinalStep && (str.length > 0 || maxIdx === -1)) {
+    h += `<div class="verdict-bar ${acc ? 'acc' : 'rej'}">${acc ? '✓ ACCEPTED' : '✗ REJECTED'} — ${acc ? 'string belongs to the language' : 'string is not in the language'}</div>`;
+  }
+  
+  const ta = document.getElementById('traceArea'); 
+  ta.innerHTML = h; 
+  ta.style.display = 'block';
+  
+  if (!dead && vm !== 'nfa') { 
+    hlRow = curSingle; 
+    renderTable(tabMode); 
+  }
 }
 
 // ── TABLES ───────────────────────────────────────────────────────────────────
@@ -479,6 +539,11 @@ function resetVisual() {
   const m = document.getElementById('vMachine').value;
   if (!gNfaFrag) return;
   
+  document.getElementById('testIn').value = '';
+  document.getElementById('traceArea').style.display = 'none';
+  document.getElementById('traceArea').innerHTML = '';
+  hlRow = null;
+  renderTable(tabMode);
   renderLive();
   
   if (m === 'nfa') {
@@ -496,12 +561,11 @@ function updateVisualUI() {
   const prog = document.getElementById('testProg');
   const tape = document.getElementById('progTape');
   const vm = document.getElementById('vMachine').value;
-  const cid = 'liveCanvas'; // Always target the live canvas
+  const cid = 'liveCanvas'; 
 
   if (vIdx === -1 && !vActiveReg) {
     prog.classList.remove('show');
-    clearHighlights();
-    return;
+    // Don't early return; we want to show the start state highlight
   }
 
   prog.classList.add('show');
@@ -532,10 +596,15 @@ function updateVisualUI() {
           }
           
           if (isAcc) node.classed('node-final-acc', true);
-          else if (vDead) node.classed('node-final-rej', true);
+          else if (vDead || (!isAcc && vIdx === str.length - 1)) node.classed('node-final-rej', true);
         }
       }
     });
+
+    if (vIdx === str.length - 1 || vDead) {
+      if (!vActiveReg) return;
+    }
+    if (vActiveReg !== '') testStr(vIdx);
   }
 }
 
@@ -579,13 +648,15 @@ function stepVisual() {
       stopPlay();
       return;
     }
-    // Highlight links
+    // Highlight links with animation
     vCur.forEach(pid => {
       const s = gSmap.get(pid);
       if (s && s.trans[ch]) {
         s.trans[ch].forEach(t => {
           const lid = `#link-${cid}-${pid}-${t.id}-${ch}`;
-          d3.select(lid).classed('link-active', true);
+          const link = d3.select(lid);
+          link.classed('link-flow', true);
+          setTimeout(() => link.classed('link-flow', false), 800);
         });
       }
     });
@@ -604,7 +675,11 @@ function stepVisual() {
     }
     
     const next = st.trans[ch];
-    d3.select(`#link-${cid}-${vCur}-${next}-${ch}`).classed('link-active', true);
+    const lid = `#link-${cid}-${vCur}-${next}-${ch}`;
+    const link = d3.select(lid);
+    link.classed('link-flow', true);
+    setTimeout(() => link.classed('link-flow', false), 800);
+    
     vCur = next;
   }
 
@@ -612,7 +687,7 @@ function stepVisual() {
 
   if (vIdx === str.length - 1) {
     stopPlay();
-    testStr(); 
+    testStr();
   }
 }
 
